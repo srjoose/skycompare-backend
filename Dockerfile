@@ -1,7 +1,5 @@
-
 # Build stage
 FROM golang:1.24.2 AS builder
-
 
 WORKDIR /app
 
@@ -12,8 +10,8 @@ COPY . .
 
 RUN go build -o server ./main/server.go
 
-# Run stage
-FROM alpine:latest  
+# Run stage (usamos la misma imagen de golang para evitar problemas de dependencias)
+FROM golang:1.24.2
 
 WORKDIR /root/
 
