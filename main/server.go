@@ -2,20 +2,53 @@ package main
 
 import (
 	"crypto/md5"
-	"database/sql" // Interactuación con la base de datos
+	"database/sql"
 	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
-	"fmt" // Imprimir en consola
-	"io"
-
-	"math/rand" //aleatorios
-	// Ayuda a escribir en la respuesta
-	"net/http" // El paquete HTTP
-
-	_ "github.com/go-sql-driver/mysql" // La librería para mySQL
+	_ "github.com/go-sql-driver/mysql"
 )
+
+func parseDSN(databaseURL string) (string, error) {
+	u, err := url.Parse(databaseURL)
+	if err != nil {
+		return "", err
+	}
+
+	user := u.User.Username()
+	password, _ := u.User.Password()
+	host := u.Host
+	dbName := strings.TrimPrefix(u.Path, "/")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, host, dbName)
+	return dsn, nil
+}
+
+func databaseConection() (db *sql.DB, e error) {
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL no está configurada")
+	}
+
+	dsn, err := parseDSN(databaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err = sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
 
 type User struct {
 	nickname, full_name, email, pass, fav_airport string
@@ -52,18 +85,6 @@ type Fly struct {
 	Sales   int32   `json:"sales"`
 }
 
-func databaseConection() (db *sql.DB, e error) {
-	user := "root"
-	pass := "aaaa"
-	host := "tcp(127.0.0.1:3306)"
-	databaseName := "skycompare"
-
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s/%s", user, pass, host, databaseName))
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
-}
 
 func login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -481,6 +502,5 @@ func main() {
 
 	http.ListenAndServe(":5152", middlewareCors(app))
 
-	// close connection at the end of fucntion
 	defer db.Close()
 }
