@@ -99,6 +99,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error getting database: %v", err)
 		return
 	}
+	defer db.Close()
 
 	rows, err := db.Query("SELECT * FROM users WHERE nickname=? AND pass=?", r.Form.Get("nickname"), r.Form.Get("password"))
 	var u User
